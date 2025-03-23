@@ -429,3 +429,267 @@ The pod will be terminated after a few dozens of seconds.
 
 
 ## Multiple Schedulers
+
+We all know the kube-scheduler in charge of choosing which node will host a pod.
+BUT we can have several custom schedulers
+
+https://kubernetes.io/docs/reference/scheduling/config/
+
+Default scheduler
+
+```
+apiVersion: kubescheduler.config.k8s.io/v1
+kind: KubeSchedulerConfiguration
+profiles:
+  - schedulerName: default-scheduler
+```
+
+Other scheduler
+
+```
+apiVersion: kubescheduler.config.k8s.io/v1
+kind: KubeSchedulerConfiguration
+profiles:
+  - schedulerName: other-scheduler
+```
+
+Let's guess that you want some additional schedulers, it will be concretely to add additional linux services as "kubelet" on EVERY NODE
+
+![Add additional schedulers](./pictures/multiplescheduler.png)
+
+
+You can deploy them as deamonsets too : 
+
+![Scheduleraspod](./pictures/scheduleraspod.png)
+
+
+Documentation about multiple schedulers : https://kubernetes.io/docs/tasks/extend-kubernetes/configure-multiple-schedulers/
+In the documentatin, the scheduler is deployed as a `Deployment` kind with all that might be useful to make it (configmap, clusterRole...)
+
+No real stuff to detect a scheduler from another pod except by the name.
+
+The scheduler can be configured on the pod/deployment needed by configuration.
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: annotation-default-scheduler
+  labels:
+    name: multischeduler-example
+spec:
+  schedulerName: default-scheduler
+  containers:
+  - name: pod-with-default-annotation-container
+    image: registry.k8s.io/pause:3.8
+```
+
+Get INFORMATION ABOUT THE CLUSTER !! and about the scheduling events
+
+```
+kubectl get events -o wide
+```
+or event better on 
+
+```
+kubectl logs -f pod-blablabla-scheduler -n kube-system
+```
+
+## Practices
+
+https://uklabs.kodekloud.com/topic/practice-test-multiple-schedulers-2/
+
+
+Know the scheduler that scheduled a specific pod ?
+
+???
+
+In the solution he only looks for a pod named ****-scheduler, but a filter on "sheduler" in description of pods help to look it for real.
+
+Create scheduler
+
+A kind `KubeSchedulerConfiguration` is to be considered as a configmap that will be mounted on a pod (eventually via deployment/daemonset) for the logic. 
+```
+apiVersion: kubescheduler.config.k8s.io/v1
+kind: KubeSchedulerConfiguration
+profiles:
+  - schedulerName: my-scheduler
+leaderElection:
+  leaderElect: fals
+```
+
++ Pods
+
+TODO : redo this practice
+
+
+Pod with custom scheduler : 
+
+```
+apiVersion: v1 
+kind: Pod 
+metadata:
+  name: nginx 
+spec:
+  containers:
+  - image: nginx
+    name: nginx
+  schedulerName: my-scheduler
+```
+
+## Configuring Scheduler Profiles
+
+It's about `priorityClassName` and how a list of pods to be scheduled can be prioritized.
+
+```
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: high-priority-nonpreempting
+value: 1000000
+preemptionPolicy: Never
+globalDefault: false
+description: "This priority class will not cause other pods to be preempted."
+```
+
+And here a pod with priority class changed from default
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  labels:
+    env: test
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    imagePullPolicy: IfNotPresent
+  priorityClassName: high-priority
+
+```
+
+
+Note : default priority value is `0` an arbitrary value higher than 0 will make the associated pod more prioritized than a pod associated to the default priority.
+
+Order of scheduling : 
+
+![Order of scheduling](./pictures/orderandextension.png)
+
+
+
+TODO : read a little more about scheduler profiles
+
+```
+https://github.com/kubernetes/community/blob/master/contributors/devel/sig-scheduling/scheduling_code_hierarchy_overview.md
+https://kubernetes.io/blog/2017/03/advanced-scheduling-in-kubernetes/
+https://jvns.ca/blog/2017/07/27/how-does-the-kubernetes-scheduler-work/
+https://stackoverflow.com/questions/28857993/how-does-kubernetes-scheduler-work
+```
+
+Preemption : the possibility to force even MORE than with the priority class
+Most of the preemption will be `preemption:never` which is the default value.
+
+
+## Admission controllers
+
+https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/
+
+**Admission controller :** a security check that makes sure a request to create or change something in Kubernetes follows certain rules before it's allowed to happen.
+It's supported by the `kube-apiserver`
+
+To see which admission plugins are enabled: `kube-apiserver -h | grep enable-admission-plugins`
+
+Documentation : https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/
+
+![Admission controller](./pictures/admissioncontrol.png)
+
+We could imagine to have an admissioncontroler able to auto create a namespace or a storage class
+
+## Practices
+
+https://learn.kodekloud.com/user/courses/udemy-labs-certified-kubernetes-administrator-with-practice-tests/module/8e4261a6-bac4-4dfe-82c5-0a1bb8c527da/lesson/d9398583-1f11-4b74-a8ee-2bc0790f3193
+
+Admission controler is NOT made to authenticate
+
+Namespaceautoprovision is NOT enabled by default
+
+
+List enabled admissioncontrollers
+- Connect on the controlplane
+- Open `cat /etc/kubernetes/manifests/kube-apiserver.yaml | more`
+- locate the line `--enable-admission-plugins`, it will list the enabled admission controllers
+
+
+
+```
+kubectl run nginx --image nginx -n blue
+Error from server (NotFound): namespaces "blue" not found
+```
+
+To add a new Admission controller without going through all node : 
+- connect on the controlplane server
+- edit the file /etc/kubernetes/manifests/kube-apiserver.yaml
+- locate the line `--enable-admission-plugins`
+/
+```
+spec:
+  containers:
+  - command:
+    - kube-apiserver
+    - --advertise-address=192.168.117.36
+    - --allow-privileged=true
+    - --authorization-mode=Node,RBAC
+    - --client-ca-file=/etc/kubernetes/pki/ca.crt
+    - --enable-admission-plugins=NodeRestriction
+```
+
+- add a new admission controller , here we add NamespaceAutoProvision
+
+`   --enable-admission-plugins=NamespaceAutoProvision,NodeRestriction`
+
+- Save and wait, the pod kube-apiserver will kindly reboot.
+
+```
+kubectl run nginx --image=nginx -n blue
+```
+
+
+
+OF COURSE to disable an Admission Controller, there is a `--disable-admission-plugins` to explicitely disable an Admission Controller in /etc/kubernetes/manifests/kube-apiserver.yaml on the controlplane
+
+`--disable-admission-plugins=DefaultStorageClass`
+
+Once the modification is done, wait a few minutes for the kube-api pods to reboot
+
+
+## Validating and mutating access controllers
+
+Meh, maybe find another source.
+
+It's about Admission webhooks
+
+admission webhooks: a way to extend the functionality of the Kubernetes API 
+Admission webhooks are used to run custom logic to approve, reject, or modify Kubernetes API requests before the resource is saved to the cluster.
+
+Example :
+Imagine you want every Pod to have a specific label. An admission webhook can automatically add that label whenever a Pod is created, so you don’t have to do it manually every time.
+
+Another example should be good to explore it.
+
+
+## Practices
+
+https://learn.kodekloud.com/user/courses/udemy-labs-certified-kubernetes-administrator-with-practice-tests/module/8e4261a6-bac4-4dfe-82c5-0a1bb8c527da/lesson/1f3b6bb8-1b60-486a-b7da-08c8c33d8508
+
+Create a tls secret named `webhook-server`: 
+
+```
+kubctl -n webhook create secret tls webhook-server-tls --cert "/root/keys/webhook-server-tls.crt" --key "/root/keys/webhook-server-tls.key"
+```
+
+TODO: Maybe an other example of admission webhook on another source could be good.
+
+
+
