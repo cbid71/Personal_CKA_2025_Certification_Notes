@@ -691,5 +691,10 @@ kubctl -n webhook create secret tls webhook-server-tls --cert "/root/keys/webhoo
 
 TODO: Maybe an other example of admission webhook on another source could be good.
 
+================
 
+Multiple scheduler
+-> soit déployé en tant que daemonset
+-> soit déployé via une modification du kubelet dans le controlplane, ce qui va faire que sur les prochains nodes il y aura le scheduler de proposé
+-> il faudra encore que le pod prenne le bon scheduler
 
