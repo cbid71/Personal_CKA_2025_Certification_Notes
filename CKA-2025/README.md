@@ -1,4 +1,4 @@
-CKAD-2025
+CKA-2025
 
 
 Disclaimer : I'm not the creator of thoses tests, I'm working for the certification myself with them.
