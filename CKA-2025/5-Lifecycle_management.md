@@ -537,7 +537,144 @@ Then we applied it by forcing it.
 kubectl replace --force -f modified_with_sidecar.yaml
 ```
 
+## Init container
+
+- The sidecar is a container which will work in the same time as the main container.
+- Init container is a container which will run first to end (state "Terminated"), then the main container can start depending if the init container has properly ended or not. 
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+  labels:
+    app: myapp
+spec:
+  containers:
+  - name: myapp-container
+    image: busybox:1.28
+    command: ['sh', '-c', 'echo The app is running! && sleep 3600']
+  initContainers:
+  - name: init-myservice
+    image: busybox
+    command: ['sh', '-c', 'git clone <some-repository-that-will-be-used-by-application> ; done;']
+```
+
+If you create several `init containers`, they are played one after the other.
+
+## Practices
+
+https://uklabs.kodekloud.com/topic/practice-test-init-containers-2/
+
+Know if a pod has an init container
+
+```
+kubectl describe pod blue | grep -i "Init containers"
+```
+
+If the init container finished like that, then the main container can start
+```
+    State:          Terminated
+      Reason:       Completed
+```
+
+We add an init container to a pod 
+
+```
+  initContainers:
+  - name: init
+    image: busybox
+    command:
+    - sleep
+    - "20"
+```
+
+The end of the practice lab finished on the fix of a pod deployment
+----> it was a problem with the command in the init container.
+
+- We fixed it in `kubectl edit pod orange`
+- When we have saved -> error, a copy file is done in /tmp/kube-edit-131212121212.yml
+- we rename /tmp/kube-edit-131212121212.yml as orange-fixed.yaml
+- we force the replacement of the pod `kubectl replace --force -f orange-fixed.yaml` 
 
 
+
+## Introduction to autoscaling
+
+- HPA HorizontalPodAutoscaling , scaling pods over metrics, usually cpu or memory
+- VPA VerticalPodAutoscaling
+
+Nothing really exotic : 
+
+HPA : https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/
+VPA : didn't find proper source
+
+# Horizon Pod Autoscaling (HPA)
+
+**`HPA` is implicitely deployed via kind `Deployment`, it's the RECOMMENDED WAY**
+
+
+![Horizontal Pod Autoscaling](./pictures/HPA.png)
+
+To do it via direct command 
+
+`kubectl autoscale deployment my-app --cpu-percent=50 --min=1 --max=10`
+
+**You need the metric server to work properly with HPA.**
+
+The HPA can also be deployed separately NOT RECOMMENDED:
+
+![Horizontal Pod Autoscaling - 2](./pictures/HPA2.png)
+
+
+## Practices
+
+https://learn.kodekloud.com/user/courses/udemy-labs-certified-kubernetes-administrator-with-practice-tests/module/54a703bb-467f-40a5-90ee-c4fcf479501c/lesson/a84abc2e-7511-4685-8dcc-73e3f80045bf
+
+
+`kubectl scale` is useful for deployment & statefulset
+
+It you scale too high for the cluster (not enough memory/RAM), some pods will remain in *Pending* status.
+
+
+**NOTE :** Skooner looks like a nice GUI to work with Kubernetes cluster
+
+## Practices - 2
+
+https://learn.kodekloud.com/user/courses/udemy-labs-certified-kubernetes-administrator-with-practice-tests/module/54a703bb-467f-40a5-90ee-c4fcf479501c/lesson/87c707b6-eda8-443a-9cac-03116ee3966f
+
+*ScalingReplicaset* event : event that occurs when a deployment create a new pod
+
+*FailedGetResourceMetrics* event : the system failed to retrieve resource usage data (like CPU or memory) for a pod or node.
+
+
+# Vertical Pod Autoscaling (VPA)
+
+In VPA, the pod by become bigger and bigger in consumption of cpu or memory
+
+VPA works by enabling a module, then defining a special kind associated to a deployment : 
+
+```
+git clone https://github.com/kubernetes/autoscaler.git
+cd autoscaler/vertical-pod-autoscaler
+./hack/vpa-up.sh
+```
+
+![kind Vertical Pod Autoscaler](./pictures/VPA.png)
+
+Comparison :
+
+![HPA vs VPA](./pictures/hpavsvpa.png)
+
+
+## Practices (about vpa)
+
+chapters 130 & 131
+
+https://learn.kodekloud.com/user/courses/udemy-labs-certified-kubernetes-administrator-with-practice-tests/module/54a703bb-467f-40a5-90ee-c4fcf479501c/lesson/b4aa0137-fe1f-4470-9b74-865b45266131
+
+AND
+
+https://learn.kodekloud.com/user/courses/udemy-labs-certified-kubernetes-administrator-with-practice-tests/module/54a703bb-467f-40a5-90ee-c4fcf479501c/lesson/eccfe456-0391-4044-8d63-e3237f8d07bf
 
 
