@@ -19,3 +19,23 @@ K3S : https://k3s.io/
 
 
 https://uklabs.kodecloud.com/courses/labs-certified-kubernetes-administrator-with-practice-tests/
+
+
+
+
+# know about
+
+- admission controller and admission API
+- imperative commands like kubectl run, kubectl create
+- know about api gateway which replaced ingress  + ingress to api gateway
+- mutating webhook
+- do exams on PSIExam && KillerSH --> apparemment KillerSH sont derrière PSI donc le + important == PSI
+
+
+# Command to be known
+
+kubectl create namespace new-namespace
+kubectl create secret
+kubectl create configmap
+kubectl run...
+kubectl scale...
