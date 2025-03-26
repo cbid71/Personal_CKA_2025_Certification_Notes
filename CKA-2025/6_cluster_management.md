@@ -172,6 +172,9 @@ systemctl stop kube-apiserver
 Documentation about etcd https://github.com/coreos/etcd
 
 
+WARNING : it seems that etcdctl is DEPRECATED
+TODO : relearn to save and restore etcd database, properly - find another source
+
 
 Since our ETCD database is TLS-Enabled, the following options are mandatory:
 
