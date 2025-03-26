@@ -15,7 +15,6 @@ see node version
 `kubectl get nodes`
 
 ##OS Upgrades
-
 About upgrading nodes and clusters
 
 No many information in this chapter
@@ -254,6 +253,8 @@ etcdctl snapshot restore /root/cluster2.db \
 systemctl daemon-reload
 systemctl restart etcd
 ```
+
+Do not forget to read `backup_and_restore_command .md`
 
 ## References
 
