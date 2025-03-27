@@ -233,7 +233,7 @@ The following parameter capture is not enough
 ![ETCD](./pictures/etcd.png)
 
 
-### Certificat details
+### Certificate details
 
 To manage certificates
 - modifying the kube-apiserver.service
@@ -268,9 +268,11 @@ You can start making lists of certificates before creating them.
 
 ![Example of document to classify certificates - 2](./pictures/example_of_document_to_list_certificates_2.png)
 
-## Practices
+### Practices
 
 https://uklabs.kodekloud.com/topic/practice-test-view-certificate-details-2/
+
+Note : for this whole infrastructure, the creator created a origine "kubernetes" certificate.
 
 Identify the certificate file used for the kube-api server
 ```
@@ -358,10 +360,95 @@ Answer : same process as former question
 openssl x509 -in /etc/kubernetes/pki/ca.crt -text -noout | more
 ```
 
+Documentation : https://kubernetes.io/docs/tasks/administer-cluster/certificates/
+
 Kubectl suddenly stops responding to your commands. Check it out! Someone recently modified the /etc/kubernetes/manifests/etcd.yaml file
 You are asked to investigate and fix the issue. Once you fix the issue wait for sometime for kubectl to respond. Check the logs of the ETCD container.
+
+
 ```
-After a look at the solution, I was far from the good idea related to kube-api server, it's a problem with etcd
+First thing first, no answer from the kubectl commands
+kubectl get pods
+.......... impossible to connect
+
+We are on the controlplane, it's not very realistic BUT we can use 'docker ps -a' to check pods on the current node... yes in a real life scenario when your cluster has 100 nodes it can't be done, but let guess
+
+docker ps -a | grep -i kube-apiserver
+
+- Both etcd and kube-apiserver ARE exited
+
+Let's check the logs from the first KO pod 
+
+docker logs 2245a8855
+
+---> kubeapi-server can't connect to the port 2379 --> It can't connect to the ETCD, dso it's a problem with ETCD cluster.
+
+Ok let's check the logs from the etcd pod
+
+docker logs 55784c45
+
+Error missing file /etc/kubernetes/pki/etcd/server-certificate.crt
+
+Let's look at the content of "ls /etc/kubernetes/pki/etcd/"
+
+- ....
+- server.key 
+- server.crt
+
+cat /etc/kubernetes/manifests/etcd.yaml | grep -i cert
+   - --cert-file=/etc/kubernetes/pki/etcd/server-certificate.crt
+...
+
+Here it's a little dumb, but the answer is only to change the content of the variable 
+
+   - --cert-file=/etc/kubernetes/pki/etcd/server.crt
+
+Then wait a few minutes
+
+That's all folks !
+
+```
+
+Ok but it broke a few hours laters, why ?
+
+```
+ok let's go back to the controlplane :
+
+ssh controlplane
+
+docker ps -a | grep -i kube-api-server
+
+---> it's broken, let's look at the logs of the kube-api server
+
+docker logs 2154c5421
+
+"https://127.0.0.1:2379 Error aauthentication failed x509 certificate signed by unknown authority"
+
+Let's look at the logs from the etcd pod
+
+docker logs 444c555
+
+' rejected connection bad certificate "", servername "" '
+
+ok a log of a rejected connection from somewhere due to a failed certificate, let's take a look at certificates between kube-api server and etcd.
+
+cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep -i "\-\-etcd"
+
+- --etcd-cafile=/etc/kubernetes/pki/ca.crt
+- --etcd-certfile=/etc/kubernetes/pki/apiserver-etcd-client.crt
+- --etcd-keyfile=/etc/kubernetes/pki/apiserver-etcd-client.key
+- --etcd-servers=https://127.0.0.1:2379
+
+By the solution, the file /etc/kubernetes/pki/ca.crt doesn't exists, we have to replace it with /etc/kubernetes/pki/etcd/ca.crt
+
+
+That's all folks !
+```
+---
+
+MY OWN SOLUTION - Not exactly true by what was expected
+
+```
 
 /etc/kubernetes/pki/etcd/server-certificate.crt does not exists, it has possibly been removed
 
@@ -371,31 +458,96 @@ Recreate a CSR from this key
 openssl req -new -key /etc/kubernetes/pki/etcd/server.key -sub "/CN=controlplane" -out server.csr
 
 then recreate the crt
-openssl x509 -req -in server.csr --signkey /etc/kubernetes/pki/etcd/server.key -out /etc/kubernetes/pki/etcd/server-certificate.crt
 
-NON FINI - A REFAIRE
+openssl x509 -req -in server.csr \
+     -CA /etc/kubernetes/pki/etcd/ca.crt \
+     -CAkey /etc/kubernetes/pki/etcd/ca.key \
+     -CAcreateserial \
+     -out /etc/kubernetes/pki/apiserver-etcd-client.crt
+
+openssl x509 -req -in server.csr \
+     -CA /etc/kubernetes/pki/etcd/ca.crt \
+     -CAkey /etc/kubernetes/pki/etcd/ca.key \
+     -CAcreateserial \
+     -out /etc/kubernetes/pki/etcd/server-certificate.crt
+
+
+UNFINISHED
 ```
 
+---
 
-The kube-api server stopped again! Check it out. Inspect the kube-api server logs and identify the root cause and fix the issue.
-Run crictl ps -a command to identify the kube-api server container. Run crictl logs container-id command to view the logs.
+
+## Certificate API
+
+It's recommended to the Admin to have its own private key & certificate to connect to the cluster
+When a new Admin arrive, she has to 
+- create her own private key, 
+- generate her CSR from her key
+- send the CSR to the existing Admin user
+
+Then the existing Admin has to 
+- use the CSR and the appropriate files from the cluster to get a certificate
+- send the certificate back to the new Admin
+
+Once she got the certificate, and so she will be able to connect to the cluster.
+
+## Practice
+
+https://uklabs.kodekloud.com/topic/practice-test-certificates-api-2/
+
+
+So we have a new admin
+
+akshay.key  -> private key generated by akshay (we are not supposed to have it) 
+akshay.csr  -> the CSR of akshay to get his certificate
+
+Documentation about management of keys, csr and certificates : https://kubernetes.io/docs/tasks/administer-cluster/certificates/
+
+To get a certificate from a CSR we can do it by openssl, or we can do it in a fun way by asking K8s to generate it
+
+
+/!\ Documentation : https://kubernetes.io/docs/tasks/tls/certificate-issue-client-csr/#create-k8s-certificatessigningrequest
+
+
+Let's guess we have myuser.csr
+
 ```
-NON FINI
+cat myuser.csr | base64 | tr -d "\n" > csr_on_one_line
 ```
+Then
+```
+apiVersion: certificates.k8s.io/v1
+kind: CertificateSigningRequest
+metadata:
+  name: myuser # example
+spec:
+  # This is an encoded CSR. Change this to the base64-encoded contents of myuser.csr
+  request: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQ1ZqQ0NBVDRDQVFBd0VURVBNQTBHQTFVRUF3d0dZVzVuWld4aE1JSUJJakFOQmdrcWhraUc5dzBCQVFFRgpBQU9DQVE4QU1JSUJDZ0tDQVFFQTByczhJTHRHdTYxakx2dHhWTTJSVlRWMDNHWlJTWWw0dWluVWo4RElaWjBOCnR2MUZtRVFSd3VoaUZsOFEzcWl0Qm0wMUFSMkNJVXBGd2ZzSjZ4MXF3ckJzVkhZbGlBNVhwRVpZM3ExcGswSDQKM3Z3aGJlK1o2MVNrVHF5SVBYUUwrTWM5T1Nsbm0xb0R2N0NtSkZNMUlMRVI3QTVGZnZKOEdFRjJ6dHBoaUlFMwpub1dtdHNZb3JuT2wzc2lHQ2ZGZzR4Zmd4eW8ybmlneFNVekl1bXNnVm9PM2ttT0x1RVF6cXpkakJ3TFJXbWlECklmMXBMWnoyalVnald4UkhCM1gyWnVVV1d1T09PZnpXM01LaE8ybHEvZi9DdS8wYk83c0x0MCt3U2ZMSU91TFcKcW90blZtRmxMMytqTy82WDNDKzBERHk5aUtwbXJjVDBnWGZLemE1dHJRSURBUUFCb0FBd0RRWUpLb1pJaHZjTgpBUUVMQlFBRGdnRUJBR05WdmVIOGR4ZzNvK21VeVRkbmFjVmQ1N24zSkExdnZEU1JWREkyQTZ1eXN3ZFp1L1BVCkkwZXpZWFV0RVNnSk1IRmQycVVNMjNuNVJsSXJ3R0xuUXFISUh5VStWWHhsdnZsRnpNOVpEWllSTmU3QlJvYXgKQVlEdUI5STZXT3FYbkFvczFqRmxNUG5NbFpqdU5kSGxpT1BjTU1oNndLaTZzZFhpVStHYTJ2RUVLY01jSVUyRgpvU2djUWdMYTk0aEpacGk3ZnNMdm1OQUxoT045UHdNMGM1dVJVejV4T0dGMUtCbWRSeEgvbUNOS2JKYjFRQm1HCkkwYitEUEdaTktXTU0xMzhIQXdoV0tkNjVoVHdYOWl4V3ZHMkh4TG1WQzg0L1BHT0tWQW9FNkpsYWFHdTlQVmkKdjlOSjVaZlZrcXdCd0hKbzZXdk9xVlA3SVFjZmg3d0drWm89Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=
+  signerName: kubernetes.io/kube-apiserver-client
+  expirationSeconds: 86400  # one day
+  usages:
+  - client auth
+```
+Then
+```
+kubectl -f myuser_csr.yaml
+```
+Then
+```
+kubectl get csr
+kubectl get csr/myuser -o yaml   # just to check about the requests 
+kubectl certificate approve myuser
+```
+OR if we want to reject
+```
+#Let's guess that we would like to reject it : 
+kubectl certificate deny myuser
+kubectl delete certificate myuser
+```
+Then
+```
+kubectl get csr myuser -o jsonpath='{.status.certificate}'| base64 -d > myuser.crt
+```
+Then send that certificate back to the new user
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-## Network policies
-
-Network policies -see later-
