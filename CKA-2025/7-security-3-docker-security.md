@@ -149,7 +149,7 @@ We took the example of ingress+egress from this page
 https://kubernetes.io/docs/concepts/services-networking/network-policies/
 And we just kept the egress part
 
-
+TODO : work a little more about networkpolicies to be sure to be relax with it.
 
 ## Custom Resource Definition (CRD)
 
@@ -184,7 +184,8 @@ An operator is the evolution of a controller. A controller is a daemon that will
 ** All operators are custom controllers, but not all custom controllers are operators **
 
 
-There is a website referencing MANY 
+
+**Website referencing MANY operators :** `https://operatorhub.io/`
 
 
 
