@@ -365,6 +365,78 @@ kubectl create clusterrolebinding michelle-storage-admin --user=michelle --clust
 
 ## Service Accounts
 
+**Roles** are associated to users, they allow users to do some stuff
+**Service accounts** are associated to pods, they allow pods to do some stuff with the cluster, the default service acccount for pods is "default" and only allow a few elements
+
+The SA is associated to a generated token, untile k8s 1.24 it was stored as a **secret**, now it's purely dynamic, in any case that identify the SA for the cluster ( so it identity the pod)
+
+`kubectl create serviceaccount myserviceaccount-sa`
+
+documentation https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod
+spec:
+  serviceAccountName: build-robot
+```
+
+`TokenRequest` --> the API that works in creating the token, automatically done
+
+## Practice
+
+https://uklabs.kodekloud.com/topic/practice-test-service-accounts-2/
+
+kubectl get sa
+kubectl describe sa default
+kubectl describe deploy web-dashboard | grep -i image
+kubectl describe deploy web-dashboard | grep -i serviceaccount
+---> ne retourne rien DONC == serviceaccountname == default
+Token mount path on the pod : /var/run/secrets/
+kubectl create sa dashboard-sa
+kubectl create token dashboard-sa		# create a token but DOES NOT associate it to the dashboard, starting the 1.24 is dynamic and no more associated to a secret
+
+Edit the pod template part of the deployment
+
+```
+spec:
+  serviceAccountName: build-robot
+  automountServiceAccountToken: true
+```
+
+The element token could be associated to the service account, but the most "normal" way of working is to associate it to the pod through the component automountServiceAccountToken
 
 
+## Image security
 
+Nothing exotic, it's just about using a local repository
+
+
+docker login my-beautif-registry.io/app/pouet
+kubectl create secrete docker-registry regcred
+  --docker-server=
+  --docker-username=
+  --docker-password=
+  --docker-email=
+
+Documentation : https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+
+## Practice
+
+https://uklabs.kodekloud.com/topic/practice-test-image-security-2/
+```
+docker-registry
+
+kubectl create secret docker-registry private-reg-cred --docker-username=dock_user --docker
+-password=dock_password --docker-server=myprivateregistry.com:5000 --docker-email=dock_user@myprivateregistry.com
+```
+
+Add in pod template part of a deployment
+
+```
+  imagePullSecrets:
+  - name: regcred
+
+``` 
