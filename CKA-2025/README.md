@@ -37,6 +37,8 @@ https://uklabs.kodecloud.com/courses/labs-certified-kubernetes-administrator-wit
 - gateway API and TLS /!\
 - know to properly investigate kubelet
 - know role, and role bindings
+- Being able to deploy a network add (CNI) as calico for example
+
 
 
 # Command to be known
