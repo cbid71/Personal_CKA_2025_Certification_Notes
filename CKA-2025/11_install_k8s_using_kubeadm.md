@@ -22,5 +22,60 @@ vagrant up
 ## OR
 ## multiple master : https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/high-availability/
 
+```
+**The whole explaination is obsolete, we decide to search for another source** : https://www.mirantis.com/blog/how-install-kubernetes-kubeadm/
+
+
+## Practice
+
+https://uklabs.kodekloud.com/topic/practice-test-cluster-installation-using-kubeadm/
+
+https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#installing-kubeadm-kubelet-and-kubectl
+
+
+on each node
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.32/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.32/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+sudo apt-get update
+
+then
+
+kubeadm installed on controlplane
+kubelet installed on controlplane
+
+sudo apt-get install -y kubelet kubeadm kubectl
+sudo apt-mark hold kubelet kubeadm kubectl		# Optional - forbid later update - lock the version
+
+Kubeadm installed on worker node01
+Kubelet installed on worker node01
+
+
+sudo apt-get install -y kubelet kubeadm kubectl
+sudo apt-mark hold kubelet kubeadm kubectl		# Optional - forbid later update - lock the version
+
+On the control-plane
+
+IP_ADDR=$(ip addr show eth0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
+kubeadm init --apiserver-cert-extra-sans=controlplane --apiserver-advertise-address $IP_ADDR --pod-network-cidr=172.17.0.0/16 --service-cidr=172.20.0.0/16
+
+You get the info DO NOT PLAY IT ON MASTER NODE, it's useless, it's made for worker
 
 ```
+Then you can join any number of worker nodes by running the following on each as root:
+
+kubeadm join 192.168.183.235:6443 --token 67h6sh.a7n9czafhl17hzoy \
+        --discovery-token-ca-cert-hash sha256:90868311bc21437d07efd9ae3c6f5ca4a6a7c3c35b5651137dc646609056f150 
+
+OR you can regenerate it by playing
+
+root@controlplane:~> kubeadm token create --print-join-command
+kubeadm join 192.168.114.75:6443 --token aqe7sk.zyr2zpqxa0aomjje --discovery-token-ca-cert-hash sha256:b9fa5652e076b79889b7ceb2f41638be5d6975c2c2970b27ed6c9e601315cd41
+```
+
+then to get the default kube-config
+
+cp /etc/kubernetes/admin.conf ~/.kube/config
+
+And you can try to deploy a CNI (typically flannel, calico etc...)
+
+kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
