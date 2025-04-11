@@ -13,6 +13,7 @@ Candidate Handbook: https://www.cncf.io/certification/candidate-handbook
 
 Exam Tips: http://training.linuxfoundation.org/go//Important-Tips-CKA-CKAD
 
+https://training.linuxfoundation.org/certification/certified-kubernetes-administrator-cka/
 
 https://github.com/kodekloudhub/certified-kubernetes-administrator-course
 
@@ -42,7 +43,7 @@ https://uklabs.kodecloud.com/courses/labs-certified-kubernetes-administrator-wit
 
 
 # Command to be known
-
+```
 kubectl create namespace new-namespace
 kubectl create secret
 kubectl create configmap
@@ -52,3 +53,5 @@ kubectl create clusterrole storage-admin --resource=persistentvolumes,storagecla
 kubectl api-resources # to know the group in apiGroup, for example for clusterrole
 kubectl create clusterrolebinding michelle-storage-admin --user=michelle --clusterrole=storage-admin
 kubectl get storageclass --as michelle
+kustomize create --automatic  # not sure if kustomize really need to be purely known
+```
