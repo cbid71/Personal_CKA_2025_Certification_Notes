@@ -1,3 +1,0 @@
-- Openstack containerisé
-- CKAD
-- certif datadog
