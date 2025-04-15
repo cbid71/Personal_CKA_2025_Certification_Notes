@@ -8,7 +8,7 @@
 - Dynatrace
 - heapter ==> **Retired product**
 
-- cadvisor -> component of Kubelet (so, each node) for montoring a node, metrics will be sent to the metrics-server
+- cadvisor -> component of Kubelet (so, each node) for monitoring a node, metrics will be sent to the metrics-server
 https://github.com/google/cadvisor
 https://github.com/google/cadvisor/blob/master/docs/storage/prometheus.md
 

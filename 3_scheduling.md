@@ -67,12 +67,13 @@ Example in the documentation page of deployments : https://kubernetes.io/docs/co
 
 https://uklabs.kodekloud.com/topic/practice-test-labels-and-selectors-2/
 
+```
 kubectl get pods --selector env=dev
 
 kubectl get all --selector env=prod -o wide
 
 kubectl get all --selector env=prod,bu=finance,tier=frontend -o wide
-
+```
 
 ## Taints and tolerations
 

@@ -162,7 +162,7 @@ spec:
 ```
 
 It seem that specifying `command` as parameter in a deployment overload both CMD and ENTRYPOINT.
-But I have different informations depending of the source. TODO : find the real answer
+But I have different informations depending of the source.
 
 ```
 apiVersion: v1 
@@ -173,8 +173,8 @@ spec:
   containers:
   - name: ubuntu
     image: ubuntu
-    command: "python pouet.py"			# -> will ignore ENTRYPOINT ?? I disagree, I have to test
-    args:					# -> args will concat after an ENTRYPOINT or overload a CMD ?
+    command: ["python","pouet.py"]		# -> "command" is not CMD, it's ENTRYPOINT equivalent, "command" overloads ENTRYPOINT and ignores CMD.
+    args:					# -> "args" overloads CMD if it exists, and will concatenate after the ENTRYPOINT
      - "--color"
      - "green"
 ```
@@ -202,7 +202,6 @@ spec:
       value: "Such a sweet sorrow"
 
 ```
-
 
 
 From another variable value

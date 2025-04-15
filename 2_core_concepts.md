@@ -176,6 +176,7 @@ ps -aux | grep -i kubelet
 
 ## Kube Proxy
 
+On kube-proxy on each node.
 To allow communication between pods, an internal network is deployed between all nodes : the `pod network`, with an internal pod network resolution service
 
 **Kube-proxy**: To concretely pass from one node to another, a proxy has to be deployed, it's the kube-proxy, one kube-proxy per node.
@@ -203,15 +204,16 @@ Pod man page : https://kubernetes.io/docs/concepts/workloads/pods/
 
 https://uklabs.kodekloud.com/topic/practice-test-pods-2/
 
+```
 kubectl run nginx --image=nginx
 kubectl describe pod newpods-628s5 | grep -i image
 kubectl get pods -o wide
 
 kubectl get pods
-READY column => number of container fully functionnal in the pod / total number of containers in the pod
+# READY column => number of container fully functionnal in the pod / total number of containers in the pod
 
 kubectl run redis --image=redis123
-
+```
 ## About replicasets
 
 Nothing very exotic here
@@ -241,11 +243,11 @@ https://uklabs.kodekloud.com/topic/practice-test-replicasets-2/
 Replicasets endure that the number of desired pods always exist
 
 Pour la correction du replicaset 
-
+```
 kubectl edit replicaset new-replicaset # puis modification de l'image
 kubectl scale replicaset new-replica-set --replica=0
 kubectl scale replicaset new-replica-set --replica=4
-
+```
 ## Deployments
 
 Nothing very exotic here
@@ -285,7 +287,6 @@ Default type : ClusterIP
 
 https://uklabs.kodekloud.com/topic/practice-test-services-2/
 
-
 Remember that the port that you wee on `kubectl get services` is the port and not the TargetPort
 TargetPort is seen by doing `kubectl describe service xxxx`
 
@@ -310,7 +311,8 @@ Note :
 
 https://uklabs.kodekloud.com/topic/practice-test-namespaces-2/
 
-`dbservce.dev.svc.cluster.local`
+Service is available between two namespaces :
+`dbservice.dev.svc.cluster.local`
 
 ## Imperative vs Declarative
 
@@ -346,6 +348,7 @@ spec:
 
 Example of imperative commands
 
+```
 kubectl expose pod redis-service --type=ClusterIP --port 6379 --dry-run=client -o yaml > service.yaml
 
 kubectl create deploy webapp --image kodekloud/webapp-color --replicas=3
@@ -361,5 +364,5 @@ kubectl run httpd --image=httpd:alpine --port 80 --expose=true # port 80 was not
 
 kubectl expose pod httpd --type=ClusterIP --name=httpd-service --port=80 --target-port=80
 Note : This command is correct, has passed, works, but the test never validated it since it wasn't the expected way
-
+```
 
