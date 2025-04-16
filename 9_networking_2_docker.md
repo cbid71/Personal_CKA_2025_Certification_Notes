@@ -355,7 +355,9 @@ TODO : Chapter 250 this practice to be redone
 
 ## GATEWAY API
 
-/!\ LEARN IT 
+It's the new way of defining Ingress -> soon to replace ingress
+
+/!\ TODO : LEARN IT 
 
 https://kubernetes.io/docs/concepts/services-networking/gateway/
 
@@ -378,7 +380,7 @@ Of course we have solutions for each of those limitations BUT lets do it a littl
 
 A gateway is a different way to represent data contained into all ingresses.
 
-Until now : 
+Until now you have only one object to do everything : 
 - You have many ingresses containing informations about hosts, URL, and services
 - You have ingress controller which serve as enter points, and dispatch all requests to the different ingresses
 - You need many annotations to create many stuff
@@ -403,6 +405,8 @@ Some Common controller Name Values
 |**Traefik**	| "traefik.io/gateway-controller"|
 |**AWS Load Balancer**	| "alb.ingress.k8s.aws/gateway"|
 
+For example for AWS you will deploy the gatewayclass `AWS Load Balancer`
+
 https://kubernetes.io/docs/concepts/services-networking/gateway/#api-kind-gateway-class
 
 ```
@@ -413,8 +417,6 @@ metadata:
 spec:
   controllerName: example.com/gateway-controller
 ```
-
-
 
 
 - Gateway : a way to represent a listener, an entrypoint "I listen in http, port 80", there is a reference to gatewayclass, it's namespace scoped
@@ -464,6 +466,17 @@ spec:
 
 
 ![Ingress vs API Gateway](./pictures/ingressandapigateway.png)
+
+So let's guess that you are on AWS and you want two ALB:
+- one ALB for inner access
+- one ALB for public access
+
+You will implement :
+- one gatewayclass for AWS ALB
+- two gateways, one for each of your ALB
+- one HTTPRoute for each of your former ingress that will point on your services
+
+You need to deploy a controller to make it work : https://www.eksworkshop.com/docs/networking/vpc-lattice/setup (do not pay attention about lattice for this specific suject) 
 
 
 ## Practice API Gateway

@@ -50,11 +50,11 @@ docker run -it --name mysql --volume-driver rexray/ebs --mount src=ebs-vol,targe
 
 Depends on the kind of storage
 
-/var/lib/docker
-/aufs
-/containers
-/images
-/volumes
+- /var/lib/docker
+- /aufs
+- /containers
+- /images
+- /volumes
 
 ![Volume](./pictures/volume1.png)
 
@@ -190,10 +190,10 @@ Example of the attachment of the PVC :
 ```
 
 ## commandes
-
+```
 docker volume create volume
 docker run -v data_volume:/var/lib/mysql mysql
-
+```
 - call to provision a new storage
 - call to delete a new storage
 - call to place a workload that uses the volume onto a node
@@ -250,10 +250,6 @@ spec:
     path: /pv/log
 ```
 
-
-
-TODO : Exam à refaire je l'ai bypass, ce sujet est particulièrement important pour la CKA
-Chapter 208-209
 
 I did the following by using the documentation only, and it works
 ```
@@ -349,9 +345,9 @@ spec:
 
 https://uklabs.kodekloud.com/topic/practice-test-storage-class-3/
 
-kubectl get storageclass 
+`kubectl get storageclass` 
 
-If a storageclass provisionner value == kubernetes.io/no-provisioner, it means that the storage class does not support dynamic volume provisioning
+If a storageclass provisionner value == `kubernetes.io/no-provisioner`, it means that the storage class does not support dynamic volume provisioning
 
 
 TODO : understand this whole table

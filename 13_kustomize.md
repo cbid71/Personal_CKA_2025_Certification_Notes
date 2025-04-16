@@ -64,11 +64,11 @@ kustomize build k8s/ | kubectl delete -f
 
 Before kustomization
 
-[AVANT kustomization](./pictures/avantkustomization.png)
+![AVANT kustomization](./pictures/avantkustomization.png)
 
 After kustomization
 
-[APRES kustomization](./pictures/apreskustomization.png)
+![APRES kustomization](./pictures/apreskustomization.png)
 
 ```
 kustomize build k8s/ | kubectl apply -f

@@ -32,33 +32,42 @@ https://uklabs.kodekloud.com/topic/practice-test-cluster-installation-using-kube
 
 https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#installing-kubeadm-kubelet-and-kubectl
 
+Define repositories
 
+```
 on each node
 curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.32/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.32/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
 sudo apt-get update
+```
 
-then
+then install controlplanes / masters
 
+```
 kubeadm installed on controlplane
 kubelet installed on controlplane
 
 sudo apt-get install -y kubelet kubeadm kubectl
 sudo apt-mark hold kubelet kubeadm kubectl		# Optional - forbid later update - lock the version
+```
 
+then install workers
+
+```
 Kubeadm installed on worker node01
 Kubelet installed on worker node01
 
-
 sudo apt-get install -y kubelet kubeadm kubectl
 sudo apt-mark hold kubelet kubeadm kubectl		# Optional - forbid later update - lock the version
+```
 
-On the control-plane
-
+then go back on the control-plane
+```
 IP_ADDR=$(ip addr show eth0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
 kubeadm init --apiserver-cert-extra-sans=controlplane --apiserver-advertise-address $IP_ADDR --pod-network-cidr=172.17.0.0/16 --service-cidr=172.20.0.0/16
+```
 
-You get the info DO NOT PLAY IT ON MASTER NODE, it's useless, it's made for worker
+You get the info to bind workers to the control plane DO NOT PLAY IT ON MASTER NODE, it's useless, it's made for worker
 
 ```
 Then you can join any number of worker nodes by running the following on each as root:
@@ -74,8 +83,60 @@ kubeadm join 192.168.114.75:6443 --token aqe7sk.zyr2zpqxa0aomjje --discovery-tok
 
 then to get the default kube-config
 
-cp /etc/kubernetes/admin.conf ~/.kube/config
+`cp /etc/kubernetes/admin.conf ~/.kube/config`
 
-And you can try to deploy a CNI (typically flannel, calico etc...)
+And you can try to deploy a CNI (Container Network Interface, typically flannel, calico etc...)
 
-kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
+`kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml`
+
+
+## If you need to upgrade
+
+First you update kubeadm on a first controlplane/master
+
+```
+sudo apt update
+sudo apt-cache madison kubeadm
+
+sudo apt-mark unhold kubeadm && \
+sudo apt-get update && sudo apt-get install -y kubeadm='1.31.x-*' && \
+sudo apt-mark hold kubeadm
+
+kubeadm version
+
+sudo kubeadm upgrade plan
+
+sudo kubeadm upgrade apply v1.31.x
+```
+
+Then update the CNI plugin 
+
+```
+depending of the CNI installed
+```
+
+Then for the other controlplanes , do the same, but instead of `kubectl upgrade apply` play the following line
+
+```
+sudo kubeadm upgrade node
+```
+
+Then for each worker node
+
+```
+# drain node
+kubectl drain <node-to-drain> --ignore-daemonsets
+
+# Upgrade kubelet and kubectl
+sudo apt-mark unhold kubelet kubectl && \
+sudo apt-get update && sudo apt-get install -y kubelet='1.31.x-*' kubectl='1.31.x-*' && \
+sudo apt-mark hold kubelet kubectl
+
+# restart the kubelet
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+
+# uncordon the node with the name of your node
+kubectl uncordon <node-to-uncordon>
+
+```
